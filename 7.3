@@ -1,0 +1,121 @@
+Aim
+To develop a Node.js-based Account Transfer System that allows users to:
+View all accounts and their balances,
+Transfer money between accounts,
+Validate sufficient balance before each transfer,
+Update both sender’s and receiver’s balances automatically.
+
+Code:
+
+// accountSystem.js
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
+app.use(bodyParser.json());
+
+// ---------------------- Mock Data ----------------------
+// In a real app, this would be replaced by a database
+let accounts = [
+  { accNo: 1001, name: "Suchet", balance: 8000 },
+  { accNo: 1002, name: "Tommy", balance: 5000 },
+  { accNo: 1003, name: "Rahul", balance: 10000 }
+];
+
+// ---------------------- Routes ----------------------
+
+// 1️⃣ Get All Accounts
+app.get('/accounts', (req, res) => {
+  res.json(accounts);
+});
+
+// 2️⃣ Get Single Account by Account Number
+app.get('/accounts/:accNo', (req, res) => {
+  const accNo = parseInt(req.params.accNo);
+  const account = accounts.find(acc => acc.accNo === accNo);
+
+  if (!account) {
+    return res.status(404).json({ message: 'Account not found' });
+  }
+
+  res.json(account);
+});
+
+// 3️⃣ Transfer Money Between Accounts
+app.post('/transfer', (req, res) => {
+  const { fromAcc, toAcc, amount } = req.body;
+
+  // Validate input
+  if (!fromAcc || !toAcc || !amount || amount <= 0) {
+    return res.status(400).json({ message: 'Invalid transfer data' });
+  }
+
+  // Find sender and receiver
+  const sender = accounts.find(acc => acc.accNo === fromAcc);
+  const receiver = accounts.find(acc => acc.accNo === toAcc);
+
+  // Validate existence
+  if (!sender || !receiver) {
+    return res.status(404).json({ message: 'Sender or receiver account not found' });
+  }
+
+  // Check balance
+  if (sender.balance < amount) {
+    return res.status(400).json({ message: 'Insufficient balance' });
+  }
+
+  // Perform transfer
+  sender.balance -= amount;
+  receiver.balance += amount;
+
+  // Response
+  res.json({
+    message: `₹${amount} transferred successfully from ${sender.name} to ${receiver.name}`,
+    sender: { name: sender.name, balance: sender.balance },
+    receiver: { name: receiver.name, balance: receiver.balance }
+  });
+});
+
+// 4️⃣ Deposit Money
+app.post('/deposit', (req, res) => {
+  const { accNo, amount } = req.body;
+  const account = accounts.find(acc => acc.accNo === accNo);
+
+  if (!account) {
+    return res.status(404).json({ message: 'Account not found' });
+  }
+
+  if (amount <= 0) {
+    return res.status(400).json({ message: 'Deposit amount must be positive' });
+  }
+
+  account.balance += amount;
+  res.json({ message: `₹${amount} deposited successfully`, account });
+});
+
+// Withdraw Money
+app.post('/withdraw', (req, res) => {
+  const { accNo, amount } = req.body;
+  const account = accounts.find(acc => acc.accNo === accNo);
+
+  if (!account) {
+    return res.status(404).json({ message: 'Account not found' });
+  }
+
+  if (amount <= 0) {
+    return res.status(400).json({ message: 'Withdraw amount must be positive' });
+  }
+
+  if (account.balance < amount) {
+    return res.status(400).json({ message: 'Insufficient balance' });
+  }
+
+  account.balance -= amount;
+  res.json({ message: `₹${amount} withdrawn successfully`, account });
+});
+
+// ---------------------- Start Server ----------------------
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`🏦 Account Transfer System running at http://localhost:${PORT}`);
+});
