@@ -1,0 +1,57 @@
+Aim
+To implement middleware in a Node.js Express application that:
+Logs details of incoming HTTP requests (method, URL, and timestamp).
+Authenticates requests using a Bearer token before granting access to protected routes.
+
+Code Implementation
+
+// middleware.js
+const express = require('express');
+const app = express();
+
+// -------- Middleware for Logging --------
+const loggerMiddleware = (req, res, next) => {
+  const currentTime = new Date().toISOString();
+  console.log(`[${currentTime}] ${req.method} ${req.originalUrl}`);
+  next(); // proceed to the next middleware or route
+};
+
+// -------- Middleware for Bearer Token Authentication --------
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+
+  // Check if header exists and starts with 'Bearer '
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Missing or invalid Authorization header' });
+  }
+
+  const token = authHeader.split(' ')[1]; // Extract token part
+
+  // For demo purposes, we use a hardcoded token. In real apps, verify JWT or database token.
+  const validToken = 'mysecrettoken123';
+
+  if (token !== validToken) {
+    return res.status(403).json({ message: 'Invalid or expired token' });
+  }
+
+  // If token valid, continue to route
+  next();
+};
+
+// -------- Apply Middlewares --------
+app.use(loggerMiddleware); // applies to all routes
+
+// -------- Routes --------
+app.get('/', (req, res) => {
+  res.send('Welcome to Public API!');
+});
+
+app.get('/secure', authMiddleware, (req, res) => {
+  res.send('Access granted to secure data!');
+});
+
+// -------- Start Server --------
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
